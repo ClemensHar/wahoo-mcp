@@ -128,17 +128,20 @@ async def _exchange_code_for_token(code: str) -> dict | None:
     logger.info("Exchanging authorization code for access token...")
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(
-            TOKEN_URL,
-            data={
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": REDIRECT_URI,
-                "grant_type": "authorization_code",
-                "code_verifier": code_verifier,
-            },
-        )
+        token_data: dict[str, str] = {
+            "client_id": CLIENT_ID,
+            "code": code,
+            "redirect_uri": REDIRECT_URI,
+            "grant_type": "authorization_code",
+        }
+        # Mirror server.py refresh logic: use client_secret for confidential
+        # clients, code_verifier for public clients (PKCE).
+        if CLIENT_SECRET:
+            token_data["client_secret"] = CLIENT_SECRET
+        else:
+            token_data["code_verifier"] = code_verifier
+
+        response = await client.post(TOKEN_URL, data=token_data)
 
         if response.status_code == HTTPStatus.OK:
             return response.json()
@@ -300,9 +303,12 @@ async def start_server():
             "user_read workouts_read routes_read plans_read "
             "plans_write power_zones_read"
         ),
-        "code_challenge": code_challenge,
-        "code_challenge_method": "S256",
     }
+    # Only add PKCE if not using a client_secret (public client flow).
+    # With client_secret present we use confidential client flow instead.
+    if not CLIENT_SECRET:
+        auth_params["code_challenge"] = code_challenge
+        auth_params["code_challenge_method"] = "S256"
 
     auth_url = f"{AUTH_URL}?{urlencode(auth_params)}"
 
