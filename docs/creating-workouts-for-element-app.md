@@ -55,7 +55,7 @@ create_workout(
   starts: "<ISO 8601 datetime, TODAY through +6 days>",
   minutes: <duration>,
   workout_token: "<unique token per instance>",
-  workout_type_id: <e.g. 0 = outdoor biking, 12 = indoor biking, 1 = running outdoor>
+  workout_type_id: <e.g. 0 = outdoor cycling, 12 = indoor cycling, 1 = running>
 )
 ```
 
