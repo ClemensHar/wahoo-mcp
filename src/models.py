@@ -897,3 +897,31 @@ Full JSON:
 {json.dumps(self.model_dump(), indent=2)}"""
 
         return details
+
+
+class CreateWorkoutRequest(BaseModel):
+    """Request model for scheduling a new workout"""
+
+    name: str = Field(description="Workout name")
+    workout_token: str = Field(description="Unique app-side identifier for this workout")
+    workout_type_id: int = Field(description="Workout type ID (e.g. 40 for indoor cycling)")
+    starts: str = Field(description="ISO 8601 start datetime; must be within current day through 6 days from now for ELEMNT app visibility")
+    minutes: int = Field(description="Workout duration in minutes")
+    plan_id: int | None = Field(None, description="Plan ID to attach to this workout")
+    route_id: int | None = Field(None, description="Route ID to attach to this workout")
+
+
+class CreateWorkoutResponse(BaseModel):
+    """Response model for workout creation"""
+
+    id: int = Field(description="Unique workout identifier")
+    starts: str = Field(description="Workout start time in ISO 8601 format")
+    minutes: int = Field(description="Workout duration in minutes")
+    name: str = Field(description="Workout name")
+    plan_id: int | None = Field(None, description="Associated plan ID")
+    plan_ids: list[int] = Field(default_factory=list, description="All associated plan IDs")
+    route_id: int | None = Field(None, description="Associated route ID")
+    workout_token: str = Field(description="Application-specific identifier")
+    workout_type_id: int = Field(description="Type of workout")
+    created_at: str = Field(description="Creation timestamp in ISO 8601 format")
+    updated_at: str = Field(description="Last update timestamp in ISO 8601 format")

@@ -363,6 +363,7 @@ class TestOAuthScopes:
         expected_scopes = [
             "user_read",
             "workouts_read",
+            "workouts_write",
             "routes_read",
             "plans_read",
             "plans_write",
@@ -370,7 +371,7 @@ class TestOAuthScopes:
         ]
 
         auth_scopes = (
-            "user_read workouts_read routes_read plans_read "
+            "user_read workouts_read workouts_write routes_read plans_read "
             "plans_write power_zones_read"
         )
 
@@ -380,14 +381,15 @@ class TestOAuthScopes:
     def test_scope_string_format(self):
         """Test scope string is properly formatted."""
         auth_scopes = (
-            "user_read workouts_read routes_read plans_read "
+            "user_read workouts_read workouts_write routes_read plans_read "
             "plans_write power_zones_read"
         )
 
         # Should be space-separated
         scope_list = auth_scopes.split()
-        assert len(scope_list) == 6
+        assert len(scope_list) == 7
         assert "user_read" in scope_list
+        assert "workouts_write" in scope_list
         assert "plans_write" in scope_list
 
 

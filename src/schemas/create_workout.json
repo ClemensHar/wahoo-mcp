@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Workout name"
+    },
+    "workout_token": {
+      "type": "string",
+      "description": "Unique app-side identifier for this workout (e.g. a UUID or slug)"
+    },
+    "workout_type_id": {
+      "type": "integer",
+      "description": "Workout type ID (e.g. 40 for indoor cycling, 25 for outdoor cycling, 1 for running)"
+    },
+    "starts": {
+      "type": "string",
+      "description": "ISO 8601 datetime for when the workout starts. Must be within the current day through 6 days from now for the plan to appear in the ELEMNT app."
+    },
+    "minutes": {
+      "type": "integer",
+      "description": "Workout duration in minutes"
+    },
+    "plan_id": {
+      "type": "integer",
+      "description": "ID of a previously created plan to attach to this workout"
+    },
+    "route_id": {
+      "type": "integer",
+      "description": "ID of a route to attach to this workout"
+    }
+  },
+  "required": [
+    "name",
+    "workout_token",
+    "workout_type_id",
+    "starts",
+    "minutes"
+  ]
+}
