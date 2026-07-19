@@ -1,7 +1,6 @@
 # Wahoo MCP Server
 
 [![CI](https://github.com/armonge/wahoo-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/armonge/wahoo-mcp/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/armonge/wahoo-mcp/graph/badge.svg?token=CODECOV_TOKEN)](https://codecov.io/gh/armonge/wahoo-mcp)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
