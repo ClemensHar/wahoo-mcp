@@ -299,7 +299,7 @@ Schedule a workout on the calendar and optionally attach a plan to it. A workout
 Parameters:
 - `name` (required): Workout name
 - `workout_token` (required): Unique app-side identifier (e.g. a UUID or slug)
-- `workout_type_id` (required): Workout type ID (e.g. `40` for indoor cycling, `25` for outdoor cycling, `1` for running)
+- `workout_type_id` (required): Workout type ID (e.g. `0` for outdoor biking, `12` for indoor biking, `1` for running outdoor)
 - `starts` (required): ISO 8601 datetime for when the workout starts — must be within the current day through 6 days from now for ELEMNT app visibility
 - `minutes` (required): Workout duration in minutes
 - `plan_id` (optional): ID of a previously created plan to attach to this workout
