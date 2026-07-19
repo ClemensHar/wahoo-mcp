@@ -300,7 +300,7 @@ async def start_server():
         "redirect_uri": REDIRECT_URI,
         "response_type": "code",
         "scope": (
-            "user_read workouts_read routes_read plans_read "
+            "user_read workouts_read workouts_write routes_read plans_read "
             "plans_write power_zones_read"
         ),
     }

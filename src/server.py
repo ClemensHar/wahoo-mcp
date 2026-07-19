@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 from .models import (
     CreatePlanRequest,
     CreatePlanResponse,
+    CreateWorkoutRequest,
+    CreateWorkoutResponse,
     Plan,
     PowerZone,
     Route,
@@ -424,6 +426,61 @@ class WahooAPIClient:
             logger.error(f"Failed to parse created plan: {e}")
             raise ValueError(f"Invalid plan data received from API: {e}") from e
 
+    async def create_workout(
+        self, workout_request: CreateWorkoutRequest
+    ) -> CreateWorkoutResponse:
+        """Schedule a new workout, optionally attaching a plan"""
+        await self._ensure_valid_token()
+
+        form_data: dict[str, str | int] = {
+            "workout[name]": workout_request.name,
+            "workout[workout_token]": workout_request.workout_token,
+            "workout[workout_type_id]": workout_request.workout_type_id,
+            "workout[starts]": workout_request.starts,
+            "workout[minutes]": workout_request.minutes,
+        }
+
+        if workout_request.plan_id is not None:
+            form_data["workout[plan_id]"] = workout_request.plan_id
+        if workout_request.route_id is not None:
+            form_data["workout[route_id]"] = workout_request.route_id
+
+        response = await self.client.post(
+            "/v1/workouts",
+            data=form_data,
+            headers={
+                "Authorization": f"Bearer {self.token_data.access_token}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+
+        if response.status_code == HTTPStatus.UNAUTHORIZED:
+            logger.info("Got 401 Unauthorized, attempting to refresh token")
+            if await self._refresh_access_token():
+                response = await self.client.post(
+                    "/v1/workouts",
+                    data=form_data,
+                    headers={
+                        "Authorization": f"Bearer {self.token_data.access_token}",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                )
+            else:
+                raise httpx.HTTPStatusError(
+                    "Authentication failed and token refresh was unsuccessful",
+                    request=response.request,
+                    response=response,
+                )
+
+        response.raise_for_status()
+        workout_dict = response.json()
+
+        try:
+            return CreateWorkoutResponse(**workout_dict)
+        except Exception as e:
+            logger.error(f"Failed to parse created workout: {e}")
+            raise ValueError(f"Invalid workout data received from API: {e}") from e
+
     async def list_power_zones(self) -> list[PowerZone]:
         await self._ensure_valid_token()
 
@@ -540,6 +597,15 @@ async def list_tools() -> list[Tool]:
             name="create_plan",
             description="Create a new plan in the user's library",
             inputSchema=load_json_schema("create_plan.json"),
+        ),
+        Tool(
+            name="create_workout",
+            description=(
+                "Schedule a new workout and optionally attach a plan to it. "
+                "A plan must be attached to a workout scheduled within the current day "
+                "through 6 days from now to appear in the Wahoo ELEMNT app."
+            ),
+            inputSchema=load_json_schema("create_workout.json"),
         ),
         Tool(
             name="list_power_zones",
@@ -698,6 +764,41 @@ async def _handle_create_plan(
     return [TextContent(type="text", text=result)]
 
 
+async def _handle_create_workout(
+    client: WahooAPIClient, arguments: Arguments
+) -> ToolResponse:
+    """Handle create_workout tool request."""
+    workout_request = CreateWorkoutRequest(
+        name=arguments["name"],
+        workout_token=arguments["workout_token"],
+        workout_type_id=arguments["workout_type_id"],
+        starts=arguments["starts"],
+        minutes=arguments["minutes"],
+        plan_id=arguments.get("plan_id"),
+        route_id=arguments.get("route_id"),
+    )
+    created_workout = await client.create_workout(workout_request)
+
+    result = f"""Workout scheduled successfully!
+
+Workout Details:
+- ID: {created_workout.id}
+- Name: {created_workout.name}
+- Starts: {created_workout.starts}
+- Duration: {created_workout.minutes} minutes
+- Workout Token: {created_workout.workout_token}
+- Workout Type ID: {created_workout.workout_type_id}
+- Created: {created_workout.created_at}
+- Updated: {created_workout.updated_at}"""
+
+    if created_workout.plan_id:
+        result += f"\n- Plan ID: {created_workout.plan_id}"
+    if created_workout.route_id:
+        result += f"\n- Route ID: {created_workout.route_id}"
+
+    return [TextContent(type="text", text=result)]
+
+
 async def _handle_list_power_zones(
     client: WahooAPIClient, arguments: Arguments
 ) -> ToolResponse:
@@ -730,6 +831,7 @@ TOOL_HANDLERS = {
     "list_plans": _handle_list_plans,
     "get_plan": _handle_get_plan,
     "create_plan": _handle_create_plan,
+    "create_workout": _handle_create_workout,
     "list_power_zones": _handle_list_power_zones,
     "get_power_zone": _handle_get_power_zone,
 }

@@ -11,7 +11,8 @@ A Model Context Protocol (MCP) server for interacting with the Wahoo Cloud API, 
 
 - **Workouts**: List workouts with pagination and date filtering, get detailed workout information
 - **Routes**: List and retrieve saved cycling/running routes
-- **Training Plans**: Access and create training plans in your Wahoo account
+- **Training Plans**: Access and create training plan templates in your Wahoo account
+- **Workout Scheduling**: Schedule workouts on the calendar and attach plans for ELEMNT app visibility
 - **Power Zones**: View power zone configurations for different workout types
 - **OAuth 2.0 Authentication**: Secure authentication with automatic token refresh
 - **Comprehensive workout type support**: 72 different workout types with location and family categorization
@@ -267,7 +268,7 @@ Use the get_power_zone tool to get details for power zone ID 321
 ```
 
 #### create_plan
-Create a new training plan in your Wahoo account.
+Create a reusable training plan template in your Wahoo account. A plan holds the workout structure — intervals, power/HR targets, and duration — but has no date and is not tied to a specific ride. It will not appear in the ELEMNT app on its own; use `create_workout` to schedule it.
 
 Parameters:
 - `plan` (required): Complete workout plan structure containing:
@@ -281,7 +282,6 @@ Parameters:
   - `workout_type` (optional): Type of workout (bike, run, swim) - defaults to "bike"
   - `estimated_duration` (optional): Estimated total duration in seconds
   - `estimated_tss` (optional): Estimated Training Stress Score
-  - `author` (optional): Author of the plan
 - `external_id` (required): Unique external ID for the plan
 - `provider_updated_at` (required): External date/time the file was updated (ISO 8601 format)
 - `filename` (optional): Name of the plan file
@@ -290,6 +290,31 @@ Example:
 ```
 Use the create_plan tool to create a new training plan with intervals for power and heart rate zones
 ```
+
+#### create_workout
+Schedule a workout on the calendar and optionally attach a plan to it. A workout is a **scheduled instance** — a calendar entry with a name, start time, and duration. Attaching a `plan_id` links the plan template to that slot.
+
+> **Important:** For a plan to appear in the Wahoo ELEMNT app, it must be attached to a workout scheduled within the current day through 6 days from now. A plan alone (without a linked workout) does **not** appear in the ELEMNT app.
+
+Parameters:
+- `name` (required): Workout name
+- `workout_token` (required): Unique app-side identifier (e.g. a UUID or slug)
+- `workout_type_id` (required): Workout type ID (e.g. `40` for indoor cycling, `25` for outdoor cycling, `1` for running)
+- `starts` (required): ISO 8601 datetime for when the workout starts — must be within the current day through 6 days from now for ELEMNT app visibility
+- `minutes` (required): Workout duration in minutes
+- `plan_id` (optional): ID of a previously created plan to attach to this workout
+- `route_id` (optional): ID of a route to attach to this workout
+
+Example — scheduling a plan for tomorrow:
+```
+First use create_plan to create the plan, then use create_workout with the returned plan_id and a starts date within the next 6 days
+```
+
+#### Typical workflow: plan a training session for the ELEMNT app
+
+1. Call `create_plan` with your intervals and targets → note the returned `id`
+2. Call `create_workout` with `plan_id` set to that `id` and `starts` set to a date within the next 6 days
+3. The workout (with the attached plan) will appear in the Wahoo ELEMNT app
 
 ## Development
 
@@ -337,7 +362,10 @@ The server implements the following Wahoo Cloud API endpoints:
 **Training Plans:**
 - `GET /v1/plans` - List training plans
 - `GET /v1/plans/{id}` - Get plan details
-- `POST /v1/plans` - Create a new training plan
+- `POST /v1/plans` - Create a new training plan template
+
+**Workout Scheduling:**
+- `POST /v1/workouts` - Schedule a workout and optionally attach a plan
 
 **Power Zones:**
 - `GET /v1/power_zones` - List power zone configurations

@@ -6,6 +6,7 @@ import pytest
 
 from src.models import (
     CreatePlanRequest,
+    CreateWorkoutRequest,
     Workout,
     WorkoutInterval,
     WorkoutPlan,
@@ -458,6 +459,103 @@ class TestWahooAPIClient:
             assert "/v1/plans" in str(request.url)
 
     @pytest.mark.asyncio
+    async def test_create_workout(
+        self, wahoo_config, temp_token_file, monkeypatch, httpx_mock
+    ):
+        monkeypatch.setenv("WAHOO_TOKEN_FILE", temp_token_file)
+
+        mock_response = {
+            "id": 56519,
+            "starts": "2024-01-15T09:00:00.000Z",
+            "minutes": 60,
+            "name": "Monday Ride",
+            "plan_id": None,
+            "plan_ids": [],
+            "route_id": None,
+            "workout_token": "token-abc",
+            "workout_type_id": 40,
+            "workout_summary": None,
+            "created_at": "2024-01-14T10:00:00.000Z",
+            "updated_at": "2024-01-14T10:00:00.000Z",
+        }
+
+        httpx_mock.add_response(
+            method="POST",
+            url="https://api.wahooligan.com/v1/workouts",
+            json=mock_response,
+            status_code=201,
+        )
+
+        workout_request = CreateWorkoutRequest(
+            name="Monday Ride",
+            workout_token="token-abc",
+            workout_type_id=40,
+            starts="2024-01-15T09:00:00.000Z",
+            minutes=60,
+        )
+
+        async with WahooAPIClient(wahoo_config) as client:
+            created = await client.create_workout(workout_request)
+
+            assert created.id == 56519
+            assert created.name == "Monday Ride"
+            assert created.workout_token == "token-abc"
+            assert created.plan_id is None
+
+            request = httpx_mock.get_requests()[0]
+            assert request.method == "POST"
+            assert "/v1/workouts" in str(request.url)
+
+    @pytest.mark.asyncio
+    async def test_create_workout_with_plan_id(
+        self, wahoo_config, temp_token_file, monkeypatch, httpx_mock
+    ):
+        monkeypatch.setenv("WAHOO_TOKEN_FILE", temp_token_file)
+
+        mock_response = {
+            "id": 56520,
+            "starts": "2024-01-15T09:00:00.000Z",
+            "minutes": 90,
+            "name": "Threshold Session",
+            "plan_id": 100,
+            "plan_ids": [100],
+            "route_id": None,
+            "workout_token": "token-xyz",
+            "workout_type_id": 40,
+            "workout_summary": None,
+            "created_at": "2024-01-14T10:00:00.000Z",
+            "updated_at": "2024-01-14T10:00:00.000Z",
+        }
+
+        httpx_mock.add_response(
+            method="POST",
+            url="https://api.wahooligan.com/v1/workouts",
+            json=mock_response,
+            status_code=201,
+        )
+
+        workout_request = CreateWorkoutRequest(
+            name="Threshold Session",
+            workout_token="token-xyz",
+            workout_type_id=40,
+            starts="2024-01-15T09:00:00.000Z",
+            minutes=90,
+            plan_id=100,
+        )
+
+        async with WahooAPIClient(wahoo_config) as client:
+            created = await client.create_workout(workout_request)
+
+            assert created.id == 56520
+            assert created.plan_id == 100
+            assert created.plan_ids == [100]
+
+            # Verify plan_id was sent in the request body
+            request = httpx_mock.get_requests()[0]
+            body = request.content.decode()
+            assert "workout%5Bplan_id%5D=100" in body or "workout[plan_id]=100" in body
+
+    @pytest.mark.asyncio
     async def test_list_power_zones(
         self,
         wahoo_config,
@@ -516,7 +614,7 @@ class TestMCPTools:
     async def test_list_tools(self):
         # The list_tools decorator creates a handler, we need to call it directly
         tools = await list_tools()
-        assert len(tools) == 9
+        assert len(tools) == 10
 
         tool_names = [tool.name for tool in tools]
         expected_tools = [
@@ -527,6 +625,7 @@ class TestMCPTools:
             "list_plans",
             "get_plan",
             "create_plan",
+            "create_workout",
             "list_power_zones",
             "get_power_zone",
         ]
