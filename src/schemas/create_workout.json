@@ -11,7 +11,7 @@
     },
     "workout_type_id": {
       "type": "integer",
-      "description": "Workout type ID (e.g. 40 for indoor cycling, 25 for outdoor cycling, 1 for running)"
+      "description": "Workout type ID (e.g. 0 for biking outdoor, 12 for indoor biking, 1 for running)"
     },
     "starts": {
       "type": "string",
